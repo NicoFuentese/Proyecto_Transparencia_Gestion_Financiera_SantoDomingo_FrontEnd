@@ -1,0 +1,14 @@
+# compose.yaml
+name: transparencia-frontend
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: frontend_transparencia
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_API_URL=http://localhost:3000/api
