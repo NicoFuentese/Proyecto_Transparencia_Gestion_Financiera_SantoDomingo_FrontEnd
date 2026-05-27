@@ -1,0 +1,25 @@
+# compose.dev.yaml
+name: transparencia-frontend-dev
+
+services:
+  web-dev:
+    image: node:20-alpine
+    container_name: frontend_transparencia_dev
+    working_dir: /app
+    
+    # Aquí ocurre la magia: Sincronización en tiempo real
+    volumes:
+      # Sincroniza tu carpeta actual con la carpeta /app del contenedor
+      - ./:/app
+      # Protege los módulos de Node instalados en el contenedor
+      - /app/node_modules
+      
+    ports:
+      # Mapeamos el puerto 8080 de tu PC al 5173 de Vite en el contenedor
+      - "8080:5173"
+      
+    environment:
+      - VITE_API_URL=http://localhost:3000/api
+      
+    # Comando para levantar el entorno de desarrollo
+    command: sh -c "npm install && npm run dev"
