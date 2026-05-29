@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Building2, AlertCircle, Lock } from "lucide-react";
-import { login } from "../../utils/auth";
+import { login } from "../utils/auth";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -74,7 +74,7 @@ export default function Login() {
                   setEmail(e.target.value);
                   setError("");
                 }}
-                placeholder="usuario@santodomingo.cl"
+                placeholder="admin@santodomingo.cl"
                 className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   error && !email ? "border-red-300" : "border-gray-300"
                 }`}
@@ -94,7 +94,7 @@ export default function Login() {
                   setPassword(e.target.value);
                   setError("");
                 }}
-                placeholder="••••••••"
+                placeholder="admin1234"
                 className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   error && !password ? "border-red-300" : "border-gray-300"
                 }`}

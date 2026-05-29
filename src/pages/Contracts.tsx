@@ -1,88 +1,64 @@
-import { useState } from "react";
-import { useLocation, Link } from "react-router";
-import { ChevronLeft, Download, Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useLocation, Link } from "react-router-dom"; // Asegúrate de usar react-router-dom
+import { ChevronLeft, Download, Search, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import api from "../services/api"; // 1. Importamos tu cliente Axios configurado
 
-const contractsData = [
-  {
-    id: 1,
-    tipo: "Licitación Pública",
-    descripcion: "Construcción de Plaza Comunitaria Sector Norte",
-    proveedor: "Constructora Horizon SpA",
-    monto: 145000000,
-    fecha: "15/02/2026",
-    estado: "Vigente",
-  },
-  {
-    id: 2,
-    tipo: "Trato Directo",
-    descripcion: "Suministro de combustible para vehículos municipales",
-    proveedor: "Copec S.A.",
-    monto: 28500000,
-    fecha: "01/03/2026",
-    estado: "Vigente",
-  },
-  {
-    id: 3,
-    tipo: "Licitación Pública",
-    descripcion: "Mantención y reparación de luminarias públicas",
-    proveedor: "Electro Servicios Ltda.",
-    monto: 62000000,
-    fecha: "10/01/2026",
-    estado: "Vigente",
-  },
-  {
-    id: 4,
-    tipo: "Convenio Marco",
-    descripcion: "Adquisición de equipamiento computacional",
-    proveedor: "TechSolutions Chile S.A.",
-    monto: 35000000,
-    fecha: "20/03/2026",
-    estado: "En ejecución",
-  },
-  {
-    id: 5,
-    tipo: "Licitación Pública",
-    descripcion: "Servicio de recolección de residuos domiciliarios",
-    proveedor: "Gestión Ambiental del Sur",
-    monto: 185000000,
-    fecha: "05/01/2026",
-    estado: "Vigente",
-  },
-  {
-    id: 6,
-    tipo: "Trato Directo",
-    descripcion: "Arriendo de maquinaria para obras viales",
-    proveedor: "Maquinarias y Equipos S.A.",
-    monto: 18000000,
-    fecha: "12/03/2026",
-    estado: "Vigente",
-  },
-  {
-    id: 7,
-    tipo: "Licitación Privada",
-    descripcion: "Remodelación de dependencias municipales",
-    proveedor: "Arquitectura y Construcción Ltda.",
-    monto: 92000000,
-    fecha: "28/02/2026",
-    estado: "En ejecución",
-  },
-];
-
-const chartData = [
-  { name: "Construcción", value: 237000000 },
-  { name: "Servicios", value: 213500000 },
-  { name: "Suministros", value: 63500000 },
-  { name: "Equipamiento", value: 35000000 },
-  { name: "Arriendo", value: 18000000 },
-];
+// 2. Definimos la interfaz TypeScript basada en tu modelo de Prisma
+interface Contract {
+  id: number;
+  tipo: string;
+  descripcion: string;
+  proveedor: string;
+  monto: number;
+  fecha: string;
+  estado: string;
+}
 
 export default function Contracts() {
   const location = useLocation();
-  const { month, year } = location.state || { month: "Marzo", year: "2026" };
+  const { month, year } = location.state || { month: "Actual", year: "2026" };
+  
+  // 3. Estados dinámicos para almacenar los datos del backend
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredContracts = contractsData.filter(
+  // 4. Efecto para cargar los datos al montar el componente
+  useEffect(() => {
+    const fetchContratos = async () => {
+      try {
+        setIsLoading(true);
+        // Consumimos el endpoint (Ajusta la ruta según tu backend, ej: /admin/contratos o /public/contratos)
+        const response = await api.get('/admin/contratos'); 
+        
+        if (response.data.success) {
+          // Mapeamos los datos de Prisma al formato que espera tu tabla
+          const backendData = response.data.data.map((item: any) => ({
+            id: item.id,
+            tipo: item.tipo || "Licitación Pública", // Fallback si no existe en BD
+            descripcion: item.titulo, // En tu esquema Prisma lo llamamos 'titulo'
+            proveedor: item.proveedor,
+            monto: item.monto,
+            fecha: new Date(item.fechaInicio).toLocaleDateString('es-CL'),
+            estado: item.estado || "Vigente"
+          }));
+          setContracts(backendData);
+        }
+      } catch (err: any) {
+        console.error("Error al obtener contratos:", err);
+        setError("No se pudieron cargar los contratos. Verifica tu conexión.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchContratos();
+  }, []);
+
+  // 5. Cálculos derivados (Ahora se hacen sobre la variable 'contracts' real)
+  const filteredContracts = contracts.filter(
     (contract) =>
       contract.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
       contract.proveedor.toLowerCase().includes(searchTerm.toLowerCase())
@@ -95,12 +71,26 @@ export default function Contracts() {
     }).format(amount);
   };
 
-  const totalContracts = contractsData.reduce((sum, item) => sum + item.monto, 0);
+  const totalContracts = contracts.reduce((sum, item) => sum + item.monto, 0);
+
+  // 6. Generación dinámica de datos para el gráfico basada en los proveedores reales
+  const generateChartData = () => {
+    const dataMap: Record<string, number> = {};
+    contracts.forEach(c => {
+      // Agrupamos por proveedor (o podrías agrupar por 'tipo')
+      const key = c.proveedor.substring(0, 15) + "..."; 
+      dataMap[key] = (dataMap[key] || 0) + c.monto;
+    });
+    return Object.keys(dataMap).map(key => ({
+      name: key,
+      value: dataMap[key]
+    })).slice(0, 5); // Mostramos los top 5
+  };
 
   const handleDownload = () => {
     const csv = [
       ["Tipo", "Descripción", "Proveedor", "Monto", "Fecha", "Estado"],
-      ...contractsData.map((c) => [c.tipo, c.descripcion, c.proveedor, c.monto, c.fecha, c.estado]),
+      ...contracts.map((c) => [c.tipo, c.descripcion, c.proveedor, c.monto, c.fecha, c.estado]),
     ]
       .map((row) => row.join(","))
       .join("\n");
@@ -112,6 +102,30 @@ export default function Contracts() {
     a.download = `contrataciones-${month}-${year}.csv`;
     a.click();
   };
+
+  // Pantalla de Carga
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
+        <p className="text-gray-600 font-medium">Cargando contratos desde el servidor...</p>
+      </div>
+    );
+  }
+
+  // Pantalla de Error
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="bg-white p-8 rounded-lg shadow text-center">
+          <p className="text-red-500 font-semibold mb-4">{error}</p>
+          <button onClick={() => window.location.reload()} className="bg-blue-600 text-white px-4 py-2 rounded">
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -150,32 +164,34 @@ export default function Contracts() {
           </div>
           <div className="bg-white rounded-lg shadow p-6">
             <p className="text-sm text-gray-600 mb-1">Contratos Activos</p>
-            <p className="text-3xl font-bold text-gray-900">{contractsData.length}</p>
+            <p className="text-3xl font-bold text-gray-900">{contracts.length}</p>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
             <p className="text-sm text-gray-600 mb-1">Proveedores Únicos</p>
             <p className="text-3xl font-bold text-gray-900">
-              {new Set(contractsData.map(c => c.proveedor)).size}
+              {new Set(contracts.map(c => c.proveedor)).size}
             </p>
           </div>
         </div>
 
         {/* Chart */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Distribución por Tipo de Contratación
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-              <Legend />
-              <Bar dataKey="value" fill="#1e40af" name="Monto Contratado" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {contracts.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Distribución por Proveedor (Top 5)
+            </h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={generateChartData()}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Legend />
+                <Bar dataKey="value" fill="#1e40af" name="Monto Contratado" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
 
         {/* Search and Download */}
         <div className="bg-white rounded-lg shadow mb-6 p-4">
@@ -193,6 +209,7 @@ export default function Contracts() {
             <button
               onClick={handleDownload}
               className="bg-[#1e40af] text-white px-4 py-2 rounded-md hover:bg-[#1e3a8a] transition-colors flex items-center gap-2 justify-center"
+              disabled={contracts.length === 0}
             >
               <Download className="w-4 h-4" />
               Descargar CSV
@@ -206,51 +223,41 @@ export default function Contracts() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tipo
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Descripción
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Proveedor
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Monto
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                    Fecha
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                    Estado
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proveedor</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Fecha</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Estado</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredContracts.map((contract) => (
-                  <tr key={contract.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-900">{contract.tipo}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{contract.descripcion}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{contract.proveedor}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900 text-right font-semibold">
-                      {formatCurrency(contract.monto)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 hidden md:table-cell">
-                      {contract.fecha}
-                    </td>
-                    <td className="px-6 py-4 hidden lg:table-cell">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          contract.estado === "Vigente"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-blue-100 text-blue-800"
-                        }`}
-                      >
-                        {contract.estado}
-                      </span>
+                {filteredContracts.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                      No se encontraron contratos.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredContracts.map((contract) => (
+                    <tr key={contract.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm text-gray-900">{contract.tipo}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{contract.descripcion}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{contract.proveedor}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900 text-right font-semibold">
+                        {formatCurrency(contract.monto)}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600 hidden md:table-cell">
+                        {contract.fecha}
+                      </td>
+                      <td className="px-6 py-4 hidden lg:table-cell">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${contract.estado === "Vigente" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"}`}>
+                          {contract.estado}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

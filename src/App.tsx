@@ -38,9 +38,6 @@ function App() {
         
         {/* Redirección por defecto: Si alguien entra a la raíz '/', lo mandamos al login */}
         <Route path="/" element={<Navigate to="/login" replace />} />
-        
-        {/* Aquí agregaremos las Rutas Protegidas en el próximo paso */}
-        {/* <Route path="/admin/dashboard" element={<AdminPanel />} /> */}
       </Routes>
     </BrowserRouter>
   );
