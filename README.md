@@ -27,6 +27,17 @@ Para trabajar en el código con actualizaciones automáticas al guardar cambios,
 
 > **Nota:** El contenedor instalará automáticamente las dependencias necesarias al iniciar.
 
+## 🔑 Credenciales de Prueba
+
+Para acceder al panel de administración, usa las siguientes credenciales:
+
+| Campo       | Valor                      |
+|-------------|----------------------------|
+| **Usuario** | `usuario@santodomingo.cl`  |
+| **Contraseña** | `Usuario1234`           |
+
+> **Nota:** Asegúrate de que el backend esté corriendo y accesible desde la URL configurada en `VITE_API_URL`.
+
 ## 🚢 Entorno de Producción
 
 Para desplegar la aplicación empaquetada y optimizada con Nginx:
@@ -66,10 +77,9 @@ Utiliza estos comandos para administrar los contenedores de la aplicación:
 
 ## 📂 Estructura del Proyecto
 
-* `src/services/`: Capa de comunicación con la API (Axios).
-* `src/pages/`: Vistas principales de la aplicación.
+* `src/services/`: Capa de comunicación con la API (Axios con interceptores JWT).
+* `src/pages/`: Vistas principales de la aplicación (login, admin, etc.).
 * `src/components/ui/`: Componentes base (shadcn/ui).
-* `src/app/routes.tsx`: Definición de rutas públicas y privadas.
 
 ## 🔐 Configuración de Variables
 
@@ -82,3 +92,7 @@ VITE_API_URL=http://localhost:3000/api
 ## 📝 Notas de Integración
 
 La autenticación se gestiona mediante tokens JWT almacenados en `localStorage`. El servicio `api.ts` inyecta automáticamente el encabezado `Authorization: Bearer <token>` en todas las peticiones protegidas hacia el backend.
+
+El login redirige según el rol del usuario:
+* **ADMIN** → `/admin/dashboard`
+* **Otros roles** → `/home`
