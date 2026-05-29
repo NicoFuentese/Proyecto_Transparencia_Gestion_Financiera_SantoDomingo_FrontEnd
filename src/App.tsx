@@ -1,8 +1,8 @@
-// src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminLayout from './components/AdminLayout';
+import PublicLayout from './components/PublicLayout';
 
-//vistas
 import Login from './pages/public/Login';
 import Home from './pages/Home';
 import AdminPanel from './pages/AdminPanel';
@@ -12,32 +12,30 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Rutas Públicas */}
-        {/*Sin inicio d sesion*/}
-        <Route path="/login" element={<Login />} />
-        <Route path="/home" element={<Home />} />
+        {/* RUTAS PÚBLICAS */}
+        <Route element={<PublicLayout />}>
+          <Route path="/home" element={<Home />} />
+        </Route>
 
-        {/* Rutas Protegidas */}
+        {/* RUTA DE LOGIN (Pública) */}
+        <Route path="/login" element={<Login />} />
+
+        {/* RUTAS PROTEGIDAS Y ANIDADAS */}
+        {/* 1. El cascarón principal protegido */}
         <Route 
-          path="/admin/dashboard" 
+          path="/admin" 
           element={
             <ProtectedRoute requireAdmin={true}>
-              <AdminPanel />
+              <AdminLayout />
             </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/admin/contratos" 
-          element={
-            <ProtectedRoute requireAdmin={true}>
-              <Contracts />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Redirección por defecto: Si alguien entra a la raíz '/', lo mandamos al login */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+          }
+        >
+          <Route path="dashboard" element={<AdminPanel />} />
+          <Route path="contratos" element={<Contracts />} />
+          <Route index element={<Navigate to="dashboard" replace />} />
+        </Route>
+
+        <Route path="/" element={<Navigate to="/home" replace />} />
       </Routes>
     </BrowserRouter>
   );
