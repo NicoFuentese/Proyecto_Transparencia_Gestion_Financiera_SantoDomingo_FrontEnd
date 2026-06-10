@@ -2,6 +2,8 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import { Building2, Upload, CheckCircle, XCircle, LogOut, FileText } from "lucide-react";
 
+import {toast} from 'sonner';
+
 type UploadHistory = {
   id: number;
   date: string;
@@ -127,6 +129,30 @@ export default function AdminPanel() {
   };
 
   return (
+    <>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold mb-4">Panel de Administración</h1>
+      
+      {/* 2. Agrega estos botones temporales para probar */}
+      <div className="flex gap-4">
+        <button 
+          onClick={() => toast.success("¡El sistema de notificaciones funciona perfectamente!")}
+          className="bg-green-600 text-white px-4 py-2 rounded"
+        >
+          Probar Éxito
+        </button>
+
+        <button 
+          onClick={() => toast.error("Error simulado de conexión")}
+          className="bg-red-600 text-white px-4 py-2 rounded"
+        >
+          Probar Error
+        </button>
+      </div>
+
+      {/* ... resto de tu código del dashboard ... */}
+    </div>
+    
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
@@ -314,5 +340,5 @@ export default function AdminPanel() {
         </div>
       </div>
     </div>
-  );
+  </>);
 }

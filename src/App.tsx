@@ -8,9 +8,12 @@ import Home from './pages/Home';
 import AdminPanel from './pages/AdminPanel';
 import Contracts from './pages/Contracts';
 
+import { Toaster } from './components/ui/sonner';
+
 function App() {
   return (
     <BrowserRouter>
+    <Toaster richColors closeButton position="top-right" />
       <Routes>
         {/* RUTAS PÚBLICAS */}
         <Route element={<PublicLayout />}>
