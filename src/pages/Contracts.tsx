@@ -38,22 +38,24 @@ export default function Contracts() {
   });
 
   // Función para obtener los contratos desde la API
-  const fetchContratos = async () => {
+ const fetchContratos = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get('/admin/contratos'); 
+      
+      const response = await api.get('/contratos?page=1&limit=10'); 
       
       if (response.data.success) {
-        const backendData = response.data.data.map((item: any) => ({
+        const backendData = response.data.data.items.map((item: any) => ({
           id: item.id,
           tipo: item.tipo || "Licitación Pública", 
-          descripcion: item.titulo, // Mapeado desde 'titulo' de Prisma
+          descripcion: item.titulo, 
           proveedor: item.proveedor,
           monto: Number(item.monto),
           fecha: new Date(item.fechaInicio).toLocaleDateString('es-CL'),
           estado: item.estado || "Vigente"
         }));
         setContracts(backendData);
+        
       }
     } catch (err: any) {
       console.error("Error al obtener contratos:", err);
