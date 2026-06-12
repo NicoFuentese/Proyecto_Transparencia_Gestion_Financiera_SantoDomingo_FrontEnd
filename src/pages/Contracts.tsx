@@ -4,6 +4,7 @@ import { ChevronLeft, Download, Search, Loader2, Plus, Trash2, X } from "lucide-
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import api from "../services/api"; // Cliente Axios configurado
 import { toast } from "sonner"; // Sistema de notificaciones requerido
+import { obtenerValorUF } from "../services/mindiador"; 
 
 // Interfaz TypeScript basada en tu modelo de Prisma
 interface Contract {
@@ -22,6 +23,7 @@ export default function Contracts() {
   
   // Estados de carga y datos
   const [contracts, setContracts] = useState<Contract[]>([]);
+  const [valorUF, setValorUF] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -66,7 +68,38 @@ export default function Contracts() {
   };
 
   useEffect(() => {
-    fetchContratos();
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // 1. Obtenemos el valor de la UF desde la API Externa (EF 5)
+        const ufActual = await obtenerValorUF();
+        setValorUF(ufActual);
+
+        // 2. Obtenemos los contratos desde TU backend
+        const response = await api.get('/admin/contratos'); 
+        
+        if (response.data.success) {
+          const backendData = response.data.data.map((item: any) => ({
+            id: item.id,
+            tipo: item.tipo || "Licitación Pública",
+            descripcion: item.titulo, 
+            proveedor: item.proveedor,
+            monto: item.monto,
+            fecha: new Date(item.fechaInicio).toLocaleDateString('es-CL'),
+            estado: item.estado || "Vigente"
+          }));
+          setContracts(backendData);
+        }
+      } catch (err: any) {
+        console.error("Error en la carga de datos:", err);
+        setError("No se pudieron cargar los datos. Verifica tu conexión.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   // Handler para Crear Contrato (POST)
@@ -225,10 +258,28 @@ export default function Contracts() {
 
         {/* Summary Indicators */}
         <div className="grid md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <p className="text-sm text-gray-600 mb-1">Total Contratado</p>
-            <p className="text-3xl font-bold text-gray-900">{formatCurrency(totalContracts)}</p>
-          </div>
+          <div className="grid md:grid-cols-3 gap-6 mb-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex justify-between items-start">
+                <p className="text-sm text-gray-600 mb-1">Total Contratado</p>
+                {/* Indicador de estado de la API de UF */}
+                {valorUF && (
+                  <span className="inline-flex px-2 py-1 text-[10px] font-semibold rounded-full bg-blue-50 text-blue-600 border border-blue-200">
+                    UF Hoy: {formatCurrency(valorUF)}
+                  </span>
+                )}
+              </div>
+              <p className="text-3xl font-bold text-gray-900">{formatCurrency(totalContracts)}</p>
+              
+              {/* Cálculo dinámico usando la API externa */}
+              {valorUF && totalContracts > 0 ? (
+                <p className="text-sm text-gray-500 mt-1 font-medium">
+                  ~ {(totalContracts / valorUF).toLocaleString("es-CL", { maximumFractionDigits: 2 })} UF
+                </p>
+              ) : (
+                <p className="text-sm text-transparent mt-1">-</p> // Mantiene el espacio visual si no hay UF
+              )}
+            </div>
           <div className="bg-white rounded-lg shadow p-6">
             <p className="text-sm text-gray-600 mb-1">Contratos Activos</p>
             <p className="text-3xl font-bold text-gray-900">{contracts.length}</p>
@@ -240,6 +291,7 @@ export default function Contracts() {
             </p>
           </div>
         </div>
+      </div>
 
         {/* Chart View */}
         {contracts.length > 0 && (
